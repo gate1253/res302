@@ -1,4 +1,4 @@
-name: Deploy res200 Worker
+name: Deploy res302 Worker
 
 on:
   push:
