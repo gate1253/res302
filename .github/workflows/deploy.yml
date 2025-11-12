@@ -31,7 +31,7 @@ jobs:
       - name: Create wrangler.toml from secrets
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          RES302_KV: ${{ secrets.RES302_KV }}
         run: |
           # Use unquoted heredoc to allow shell variable expansion
           cat > wrangler.toml <<EOF
@@ -41,7 +41,7 @@ jobs:
           compatibility_date = "2025-11-08"
           account_id = "${CF_ACCOUNT_ID}"
           kv_namespaces = [
-            { binding = "RES302_KV", id = "${CF_KV_NAMESPACE_ID}" }
+            { binding = "RES302_KV", id = "${RES302_KV}" }
           ]
           EOF
           echo "wrangler.toml created."
