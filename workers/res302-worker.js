@@ -7,7 +7,7 @@ function corsHeaders() {
 		'Access-Control-Max-Age': '86400'
 	};
 }
-
+ 
 // JSON 응답 유틸리티 함수
 function jsonResponse(obj, status = 200, extraHeaders = {}) {
 	const headers = Object.assign({}, corsHeaders(), {'Content-Type':'application/json'}, extraHeaders);
