@@ -24,19 +24,6 @@ export async function handleRequest(request, env){
 	const url = new URL(request.url);
 	const pathname = url.pathname;
 
-	// 추가: POST /api/member 라우트
-	if (request.method === 'POST' && pathname === '/api/member') {
-		return handleAuthCallback(request, env);
-	}
-
-	// API: POST /api/shorten
-	if(request.method === 'POST' && pathname === '/api/shorten'){
-		return handleShorten(request, env);
-	}
-	// API: GET /api/list
-	// if(request.method === 'GET' && pathname === '/api/list'){
-	// 	return handleList(env);
-	// }
 	// 리다이렉트: GET /{code} 또는 /{uniqueUserId}/{code}
 	if(request.method === 'GET' && pathname.length > 1){
 		const fullPath = pathname.slice(1); // 예: "user123abcde/my/custom/code" 또는 "abc123"
@@ -62,7 +49,27 @@ export async function handleRequest(request, env){
 		if (targetCode) {
 			const target = await env.RES302_KV.get(targetCode);
 			if(target){
-				return new Response(null, {status:302, headers: Object.assign({Location: target}, corsHeaders())});
+				let finalTarget = target;
+				const url = new URL(target);
+
+				// target URL의 쿼리스트링에 'cnt=${cnt}'가 있는지 확인합니다.
+				if (url.searchParams.get('cnt') === '${cnt}') {
+					// REQ_COUNT_KV에서 현재 카운트를 가져옵니다. 없으면 0으로 시작합니다.
+					let count = await env.REQ_COUNT_KV.get(targetCode);
+					count = count ? parseInt(count, 10) : 0;
+
+					// 카운트를 1 증가시킵니다.
+					const newCount = count + 1;
+
+					// 증가된 카운트를 KV에 다시 저장합니다.
+					await env.REQ_COUNT_KV.put(targetCode, newCount.toString());
+
+					// URL의 'cnt' 파라미터 값을 새로운 카운트로 교체합니다.
+					url.searchParams.set('cnt', newCount);
+					finalTarget = url.toString();
+				}
+
+				return new Response(null, {status:302, headers: Object.assign({Location: finalTarget}, corsHeaders())});
 			}
 		}
 		return new Response('Not found', {status:404, headers: corsHeaders()});
