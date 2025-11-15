@@ -49,7 +49,7 @@ jobs:
           kv_namespaces = [
             { binding = "RES302_KV", id = "${RES302_KV}" },
             { binding = "REQ_TIME_KV", id = "${REQ_TIME_KV}" },
-            { binding = "REQ_COUNT_KV", id = "${REQ_COUNT_KV}"
+            { binding = "REQ_COUNT_KV", id = "${REQ_COUNT_KV}" }
           ]
           EOF
           echo "wrangler.toml created."
