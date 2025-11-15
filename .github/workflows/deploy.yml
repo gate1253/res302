@@ -30,8 +30,14 @@ jobs:
 
       - name: Create wrangler.toml from secrets
         env:
+          # CF_ACCOUNT_ID 네임스페이스 ID
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          # RES302_KV 네임스페이스 ID
           RES302_KV: ${{ secrets.RES302_KV }}
+          # REQ_TIME_KV 네임스페이스 ID
+          REQ_TIME_KV: ${{ secrets.REQ_TIME_KV }}
+          # REQ_COUNT_KV 네임스페이스 ID
+          REQ_COUNT_KV: ${{ secrets.REQ_COUNT_KV }}
         run: |
           # Use unquoted heredoc to allow shell variable expansion
           cat > wrangler.toml <<EOF
@@ -41,7 +47,9 @@ jobs:
           compatibility_date = "2025-11-08"
           account_id = "${CF_ACCOUNT_ID}"
           kv_namespaces = [
-            { binding = "RES302_KV", id = "${RES302_KV}" }
+            { binding = "RES302_KV", id = "${RES302_KV}" },
+            { binding = "REQ_TIME_KV", id = "${REQ_TIME_KV}" },
+            { binding = "REQ_COUNT_KV", id = "${REQ_COUNT_KV}"
           ]
           EOF
           echo "wrangler.toml created."
