@@ -7,25 +7,25 @@ function corsHeaders() {
 		'Access-Control-Max-Age': '86400'
 	};
 }
- 
+
 // JSON 응답 유틸리티 함수
 function jsonResponse(obj, status = 200, extraHeaders = {}) {
-	const headers = Object.assign({}, corsHeaders(), {'Content-Type':'application/json'}, extraHeaders);
-	return new Response(JSON.stringify(obj), {status, headers});
+	const headers = Object.assign({}, corsHeaders(), { 'Content-Type': 'application/json' }, extraHeaders);
+	return new Response(JSON.stringify(obj), { status, headers });
 }
 
-export async function handleRequest(request, env){
+export async function handleRequest(request, env) {
 
 	// OPTIONS preflight 처리 추가
-	if(request.method === 'OPTIONS'){
-		return new Response(null, {status:204, headers: corsHeaders()});
+	if (request.method === 'OPTIONS') {
+		return new Response(null, { status: 204, headers: corsHeaders() });
 	}
 
 	const url = new URL(request.url);
 	const pathname = url.pathname;
 
 	// 리다이렉트: GET /{code} 또는 /{uniqueUserId}/{code}
-	if(request.method === 'GET' && pathname.length > 1){
+	if (request.method === 'GET' && pathname.length > 1) {
 		const fullPath = pathname.slice(1); // 예: "user123abcde/my/custom/code" 또는 "abc123"
 		const pathSegments = fullPath.split('/');
 		let targetCode = null; // KV에서 조회할 최종 키
@@ -48,34 +48,51 @@ export async function handleRequest(request, env){
 
 		if (targetCode) {
 			const target = await env.RES302_KV.get(targetCode);
-			if(target){
+			if (target) {
 				let finalTarget = target;
-				const url = new URL(target);
+				try {
+					const targetUrl = new URL(target);
 
-				// target URL의 쿼리스트링에 'cnt=${cnt}'가 있는지 확인합니다.
-				if (url.searchParams.get('cnt') === '${cnt}') {
-					// REQ_COUNT_KV에서 현재 카운트를 가져옵니다. 없으면 0으로 시작합니다.
-					let count = await env.REQ_COUNT_KV.get(targetCode);
-					count = count ? parseInt(count, 10) : 0;
+					// 1. QueryString Forwarding check
+					if (targetUrl.searchParams.get('with') === 'querystring' && targetUrl.searchParams.get('type') === 'forward') {
+						// Remove markers
+						targetUrl.searchParams.delete('with');
+						targetUrl.searchParams.delete('type');
 
-					// 카운트를 1 증가시킵니다.
-					const newCount = count + 1;
+						// Append calling query strings
+						for (const [key, value] of url.searchParams.entries()) {
+							targetUrl.searchParams.set(key, value);
+						}
+						finalTarget = targetUrl.toString();
+					}
 
-					// 증가된 카운트를 KV에 다시 저장합니다.
-					await env.REQ_COUNT_KV.put(targetCode, newCount.toString());
+					// 2. Count increment logic
+					if (targetUrl.searchParams.get('cnt') === '${cnt}') {
+						// REQ_COUNT_KV에서 현재 카운트를 가져옵니다. 없으면 0으로 시작합니다.
+						let count = await env.REQ_COUNT_KV.get(targetCode);
+						count = count ? parseInt(count, 10) : 0;
 
-					// URL의 'cnt' 파라미터 값을 새로운 카운트로 교체합니다.
-					url.searchParams.set('cnt', newCount);
-					finalTarget = url.toString();
+						// 카운트를 1 증가시킵니다.
+						const newCount = count + 1;
+
+						// 증가된 카운트를 KV에 다시 저장합니다.
+						await env.REQ_COUNT_KV.put(targetCode, newCount.toString());
+
+						// URL의 'cnt' 파라미터 값을 새로운 카운트로 교체합니다.
+						targetUrl.searchParams.set('cnt', newCount);
+						finalTarget = targetUrl.toString();
+					}
+				} catch (e) {
+					console.warn('Invalid target URL for processing:', target);
 				}
 
-				return new Response(null, {status:302, headers: Object.assign({Location: finalTarget}, corsHeaders())});
+				return new Response(null, { status: 302, headers: Object.assign({ Location: finalTarget }, corsHeaders()) });
 			}
 		}
-		return new Response('Not found', {status:404, headers: corsHeaders()});
+		return new Response('Not found', { status: 404, headers: corsHeaders() });
 	}
 	// 기타
-	return new Response('Not found', {status:404, headers: corsHeaders()});
+	return new Response('Not found', { status: 404, headers: corsHeaders() });
 }
 
 export default {
