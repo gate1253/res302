@@ -54,11 +54,11 @@ export async function handleRequest(request, env) {
 					const targetUrl = new URL(target);
 
 					// 1. QueryString Forwarding check
-					if (targetUrl.searchParams.get('with') === 'querystring' && targetUrl.searchParams.get('type') === 'forward') {
-						// Remove markers
-						targetUrl.searchParams.delete('with');
-						targetUrl.searchParams.delete('type');
+					const isForwardingEnabled =
+						(targetUrl.searchParams.get('with') === 'querystring' && targetUrl.searchParams.get('type') === 'forward') ||
+						(url.searchParams.get('with') === 'querystring' && url.searchParams.get('type') === 'forward');
 
+					if (isForwardingEnabled) {
 						// Append calling query strings
 						for (const [key, value] of url.searchParams.entries()) {
 							targetUrl.searchParams.set(key, value);
