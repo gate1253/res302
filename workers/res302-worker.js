@@ -59,8 +59,12 @@ export async function handleRequest(request, env) {
 						(url.searchParams.get('with') === 'querystring' && url.searchParams.get('type') === 'forward');
 
 					if (isForwardingEnabled) {
-						// Append calling query strings
+						// Append calling query strings, avoiding duplication of the forwarding triggers
 						for (const [key, value] of url.searchParams.entries()) {
+							// If the target already has these specific triggers, don't re-add them from the request URL
+							if ((key === 'with' && value === 'querystring') || (key === 'type' && value === 'forward')) {
+								if (targetUrl.searchParams.get(key) === value) continue;
+							}
 							targetUrl.searchParams.set(key, value);
 						}
 						finalTarget = targetUrl.toString();
